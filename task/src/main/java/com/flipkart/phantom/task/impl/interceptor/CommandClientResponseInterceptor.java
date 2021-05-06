@@ -16,7 +16,6 @@
 package com.flipkart.phantom.task.impl.interceptor;
 
 import com.flipkart.phantom.task.spi.TaskResult;
-import com.flipkart.phantom.task.impl.interceptor.AbstractClientResponseInterceptor;
 import com.google.common.base.Optional;
 
 /**

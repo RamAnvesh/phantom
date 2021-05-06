@@ -138,7 +138,7 @@ public class UDSOIOServer extends AbstractNetworkServer {
     public AFUNIXServerSocket socket;
 
     /** The TaskRepository to lookup TaskHandlerExecutors from */
-	private ExecutorRepository<TaskRequestWrapper,TaskResult, TaskHandler> repository;
+	private ExecutorRepository<TaskRequestWrapper, TaskResult, TaskHandler> repository;
 
     /** The publisher used to broadcast events to Service Proxy Subscribers */
     private ServiceProxyEventProducer eventProducer;
@@ -274,7 +274,7 @@ public class UDSOIOServer extends AbstractNetworkServer {
         }
         public void run() {
             long receiveTime = System.currentTimeMillis();
-            TaskHandlerExecutor<byte[]> executor = null;
+            TaskHandlerExecutor<byte[], ?> executor = null;
             CommandInterpreter.ProxyCommand readCommand = null;
             Optional<RuntimeException> transportError = Optional.absent();
             TaskResult result = null;
@@ -418,7 +418,7 @@ public class UDSOIOServer extends AbstractNetworkServer {
     public ExecutorRepository getRepository() {
         return this.repository;
     }
-    public void setRepository(ExecutorRepository<TaskRequestWrapper,TaskResult, TaskHandler> repository) {
+    public void setRepository(ExecutorRepository<TaskRequestWrapper, TaskResult, TaskHandler> repository) {
         this.repository = repository;
     }
     public void setEventProducer(ServiceProxyEventProducer eventProducer) {

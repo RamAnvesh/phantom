@@ -20,6 +20,7 @@ import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Future;
 
 import org.slf4j.Logger;
@@ -44,19 +45,29 @@ import com.google.common.base.Optional;
 @SuppressWarnings("rawtypes")
 public class TaskContextImpl implements TaskContext {
 
-    /** Logger for this class */
+    /**
+     * Logger for this class
+     */
     private static final Logger LOGGER = LoggerFactory.getLogger(TaskContextImpl.class);
 
-    /** The default command to get Config  */
+    /**
+     * The default command to get Config
+     */
     private static final String GET_CONFIG_COMMAND = "getConfig";
 
-    /** Host name for this TaskContext */
+    /**
+     * Host name for this TaskContext
+     */
     private static String hostName;
 
-    /** ObjectMapper instance */
+    /**
+     * ObjectMapper instance
+     */
     private ObjectMapper objectMapper = new ObjectMapper();
 
-    /** The TaskHandlerExecutorRepository instance for getting thrift handler executor instances */
+    /**
+     * The TaskHandlerExecutorRepository instance for getting thrift handler executor instances
+     */
     private TaskHandlerExecutorRepository executorRepository;
 
     static {
@@ -69,11 +80,12 @@ public class TaskContextImpl implements TaskContext {
 
     /**
      * Gets the config from the ConfigTaskHandler (@link{GET_CONFIG_COMMAND}).
+     *
      * @param group group name of the object to be fetched
-     * @param key the primary key
+     * @param key   the primary key
      * @return the config as string, empty string if not found/error
      */
-	public String getConfig(String group, String key, int count) {
+    public String getConfig(String group, String key, int count) {
         Map<String, Object> params = new HashMap<>();
         params.put("group", group);
         params.put("key", key);
@@ -82,7 +94,7 @@ public class TaskContextImpl implements TaskContext {
         if (result == null) {
             return "";
         }
-        return new String((byte[])result.getData());
+        return new String((byte[]) result.getData());
     }
 
     /**
@@ -95,53 +107,72 @@ public class TaskContextImpl implements TaskContext {
 
     @Override
     public <T, S> TaskResult<T> executeCommand(String commandName, TaskRequestWrapper<S> taskRequestWrapper, Decoder<T> decoder) throws UnsupportedOperationException {
-        return this.executorRepository.executeCommand(commandName, taskRequestWrapper,decoder);
+        return this.executorRepository.executeCommand(commandName, taskRequestWrapper, decoder);
     }
 
     @Override
     public <T, S> TaskResult<T> executeCommand(String commandName, S data, Map<String, Object> params, Decoder<T> decoder) throws UnsupportedOperationException {
-        return this.executorRepository.executeCommand(commandName, this.createRequestFromParams(commandName, data, params),decoder);
+        return this.executorRepository.executeCommand(commandName, this.createRequestFromParams(commandName, data, params), decoder);
     }
 
     @Override
-    public <S> Future<TaskResult> executeAsyncCommand(String commandName, S data, Map<String, Object> params, Decoder decoder) throws UnsupportedOperationException {
-        return this.executorRepository.executeAsyncCommand(commandName, this.createRequestFromParams(commandName, data, params),decoder);
+    public <S> Future<TaskResult<Object>> executeAsyncCommand(String commandName, S data, Map<String, Object> params, Decoder decoder) throws UnsupportedOperationException {
+        Future<TaskResult<Object>> taskResultFuture = this.executorRepository.executeAsyncCommand(commandName, this.createRequestFromParams(commandName, data, params), decoder);
+        return taskResultFuture;
     }
 
     @Override
-    public <S> Future<TaskResult> executeAsyncCommand(String commandName, S data, Map<String, Object> params) throws UnsupportedOperationException {
+    public <S> Future<? extends TaskResult<?>> executeAsyncCommand(String commandName, S data, Map<String, Object> params) throws UnsupportedOperationException {
         return this.executorRepository.executeAsyncCommand(commandName, this.createRequestFromParams(commandName, data, params));
     }
-    
-    /** Creates a TaskRequestWrapper from passed in params and sets the current server span on it*/
-    private <S> TaskRequestWrapper createRequestFromParams(String commandName, S data, Map<String, Object> params) {
-        TaskRequestWrapper taskRequestWrapper = new TaskRequestWrapper();
+
+    @Override
+    public <S> CompletableFuture<TaskResult<Object>> executeAsyncCommandV2(String commandName, S data, Map<String, Object> params, Decoder decoder) throws UnsupportedOperationException {
+        return this.executorRepository.executeAsyncCommandV2(commandName, this.createRequestFromParams(commandName, data, params), decoder);
+    }
+
+    @Override
+    public <S> CompletableFuture<TaskResult<Object>> executeAsyncCommandV2(String commandName, S data, Map<String, Object> params) throws UnsupportedOperationException {
+        return this.executorRepository.executeAsyncCommandV2(commandName, this.createRequestFromParams(commandName, data, params));
+    }
+
+    /**
+     * Creates a TaskRequestWrapper from passed in params and sets the current server span on it
+     */
+    private <S> TaskRequestWrapper<S> createRequestFromParams(String commandName, S data, Map<String, Object> params) {
+        TaskRequestWrapper<S> taskRequestWrapper = new TaskRequestWrapper();
         taskRequestWrapper.setCommandName(commandName);
         taskRequestWrapper.setData(data);
         taskRequestWrapper.setParams(params);
-    	ServerSpan serverSpan = Brave.getServerSpanThreadBinder().getCurrentServerSpan();
-    	if (serverSpan.getSpan() != null) {
-    		// set the request context and the current server span on the received request only if a span exists
-        	RequestContext serverRequestContext = new RequestContext();
-    		serverRequestContext.setCurrentServerSpan(serverSpan); 
-        	taskRequestWrapper.setRequestContext(Optional.of(serverRequestContext));
-    	}
-    	return taskRequestWrapper;
+        ServerSpan serverSpan = Brave.getServerSpanThreadBinder().getCurrentServerSpan();
+        if (serverSpan.getSpan() != null) {
+            // set the request context and the current server span on the received request only if a span exists
+            RequestContext serverRequestContext = new RequestContext();
+            serverRequestContext.setCurrentServerSpan(serverSpan);
+            taskRequestWrapper.setRequestContext(Optional.of(serverRequestContext));
+        }
+        return taskRequestWrapper;
     }
 
-    /** Getter/Setter methods */
+    /**
+     * Getter/Setter methods
+     */
     public TaskHandlerExecutorRepository getExecutorRepository() {
         return this.executorRepository;
     }
+
     public void setExecutorRepository(TaskHandlerExecutorRepository executorRepository) {
         this.executorRepository = executorRepository;
     }
+
     public ObjectMapper getObjectMapper() {
         return objectMapper;
     }
+
     public void setObjectMapper(ObjectMapper objectMapper) {
         this.objectMapper = objectMapper;
     }
+
     @Override
     public String getHostName() {
         return hostName;

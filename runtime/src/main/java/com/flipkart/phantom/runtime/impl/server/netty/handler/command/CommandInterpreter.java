@@ -28,7 +28,6 @@ import org.jboss.netty.channel.ChannelEvent;
 import org.jboss.netty.channel.ChannelHandlerContext;
 import org.jboss.netty.channel.Channels;
 import org.jboss.netty.channel.MessageEvent;
-import org.springframework.util.SerializationUtils;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.flipkart.phantom.task.spi.TaskResult;

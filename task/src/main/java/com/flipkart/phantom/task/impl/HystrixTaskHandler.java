@@ -60,7 +60,7 @@ public abstract class HystrixTaskHandler extends TaskHandler {
     /**
      * These can be used to limit the maximum concurrent requests at a command level.
      * The key will be the HystrixCommand name. It should be a valid commandName. (Else an exception is thrown)
-     * The value will be the thread pool size. 
+     * The value will be the thread pool size.
      * Note: commandPoolSizeParams override concurrentPoolSizeParams. commandPoolSizeParams will only be applied if there is no
      * "pool" param in incoming requests.
      * (If no. of concurrent requests for this thread pool exceed this value, they will be rejected by Hystrix)
@@ -102,13 +102,13 @@ public abstract class HystrixTaskHandler extends TaskHandler {
      * @return
      * @throws RuntimeException
      */
-    public <T, S> TaskResult<T> getFallBack(TaskContext taskContext, String command, TaskRequestWrapper<S> taskRequestWrapper,Decoder<T> decoder) throws RuntimeException {
+    public <T, S> TaskResult<T> getFallBack(TaskContext taskContext, String command, TaskRequestWrapper<S> taskRequestWrapper, Decoder<T> decoder) throws RuntimeException {
         return null;
     }
 
     /**
      * Call to optionally release any resources used to create the specified response. Useful when Hystrix command
-     * timeouts result in the call being aborted. This callback is intended to be used for freeing up underlying connections/resources.  
+     * timeouts result in the call being aborted. This callback is intended to be used for freeing up underlying connections/resources.
      * @param taskResult
      */
     public <T> void releaseResources(TaskResult<T> taskResult) {
