@@ -73,7 +73,7 @@ public class AsyncTaskHandlerExecutor<S, R> extends AbstractTaskHandlerExecutor<
     }
 
     @Override
-    protected AsyncTaskResult<R> run() throws Exception {
+    protected AsyncTaskResult<R> run() {
         return new AsyncTaskResult<>(run().getTaskResultFuture()
                 .thenApply(taskResult -> {
                     if (taskResult != null && !taskResult.isSuccess()) {
@@ -86,7 +86,7 @@ public class AsyncTaskHandlerExecutor<S, R> extends AbstractTaskHandlerExecutor<
                         this.taskHandler.releaseResources(taskResult);
                     }
                     processResponseInterceptors(
-                            new AsyncTaskResult<R>(completedFuture(taskResult)),
+                            new AsyncTaskResult<>(completedFuture(taskResult)),
                             Optional.of(throwable)
                                     .map(RuntimeException::new)
                                     .orElse(null));
@@ -111,5 +111,4 @@ public class AsyncTaskHandlerExecutor<S, R> extends AbstractTaskHandlerExecutor<
     public CompletableFuture<TaskResult<R>> queueAndCompose() {
         return queue().thenCompose(AsyncTaskResult::getTaskResultFuture);
     }
-
 }
