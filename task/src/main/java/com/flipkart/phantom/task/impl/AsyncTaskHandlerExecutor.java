@@ -5,7 +5,10 @@ import com.flipkart.phantom.task.spi.*;
 import com.flipkart.phantom.task.spi.interceptor.RequestInterceptor;
 import com.flipkart.phantom.task.spi.interceptor.ResponseInterceptor;
 import com.github.kristofa.brave.Brave;
-import com.netflix.hystrix.*;
+import com.netflix.hystrix.HystrixCommandGroupKey;
+import com.netflix.hystrix.HystrixCommandKey;
+import com.netflix.hystrix.HystrixCommandProperties;
+import com.netflix.hystrix.HystrixObservableCommand;
 import rx.Observable;
 
 import java.util.LinkedList;
@@ -13,7 +16,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.Future;
 
 import static java.util.concurrent.CompletableFuture.completedFuture;
 
@@ -23,12 +25,6 @@ public class AsyncTaskHandlerExecutor<S, R> extends HystrixObservableCommand<Tas
      * TaskResult message constants
      */
     public static final String NO_RESULT = "The command returned no result";
-    public static final String ASYNC_QUEUED = "The command dispatched for async execution";
-
-    /**
-     * The default Hystrix group to which the command belongs, unless otherwise mentioned
-     */
-    public static final String DEFAULT_HYSTRIX_GROUP = "DEFAULT_GROUP";
 
     /**
      * Event Type for publishing all events which are generated here
@@ -69,8 +65,8 @@ public class AsyncTaskHandlerExecutor<S, R> extends HystrixObservableCommand<Tas
     /**
      * List of request and response interceptors
      */
-    private List<RequestInterceptor<TaskRequestWrapper<S>>> requestInterceptors = new LinkedList<>();
-    private List<ResponseInterceptor<TaskResult<R>>> responseInterceptors = new LinkedList<>();
+    private final List<RequestInterceptor<TaskRequestWrapper<S>>> requestInterceptors = new LinkedList<>();
+    private final List<ResponseInterceptor<TaskResult<R>>> responseInterceptors = new LinkedList<>();
 
     private final AsyncHystrixTaskHandler taskHandler;
 
@@ -202,7 +198,7 @@ public class AsyncTaskHandlerExecutor<S, R> extends HystrixObservableCommand<Tas
     }
 
     protected CompletableFuture<TaskResult<R>> getDefaultResult() {
-        return completedFuture(new TaskResult<>(true, AbstractTaskHandlerExecutor.NO_RESULT));
+        return completedFuture(new TaskResult<>(true, NO_RESULT));
     }
 
     @Override

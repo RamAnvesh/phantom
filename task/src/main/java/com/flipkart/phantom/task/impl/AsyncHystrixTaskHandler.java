@@ -49,4 +49,6 @@ public abstract class AsyncHystrixTaskHandler extends TaskHandler implements Asy
         return HystrixCommandProperties.ExecutionIsolationStrategy.SEMAPHORE;
     }
 
+
+
 }

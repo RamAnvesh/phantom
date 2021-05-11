@@ -16,21 +16,20 @@
 
 package com.flipkart.phantom.task.impl;
 
-import java.util.Map;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.Future;
-
-import com.flipkart.phantom.task.spi.*;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import com.flipkart.phantom.event.ServiceProxyEvent;
 import com.flipkart.phantom.event.ServiceProxyEventProducer;
 import com.flipkart.phantom.task.impl.interceptor.ClientRequestInterceptor;
 import com.flipkart.phantom.task.impl.interceptor.CommandClientResponseInterceptor;
 import com.flipkart.phantom.task.impl.registry.TaskHandlerRegistry;
 import com.flipkart.phantom.task.impl.repository.AbstractExecutorRepository;
+import com.flipkart.phantom.task.spi.*;
 import com.netflix.hystrix.HystrixCommandProperties.ExecutionIsolationStrategy;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import java.util.Map;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.Future;
 
 /**
  * <code>TaskHandlerExecutorRepository</code> is a repository that searches for a {@link TaskHandler}
@@ -77,7 +76,7 @@ public class TaskHandlerExecutorRepository extends AbstractExecutorRepository<Ta
      * @throws UnsupportedOperationException if doesn't find a TaskHandler in the registry corresponding to the command name
      */
     public Executor<TaskRequestWrapper, TaskResult> getExecutor(String commandName, String proxyName, TaskRequestWrapper requestWrapper) {
-        Executor<TaskRequestWrapper, TaskResult> executor = null;
+        Executor<TaskRequestWrapper, TaskResult> executor;
         //Regex matching of threadPoolName and commandName
         //(Hystrix dashboard requires names to be alphanumeric)    	
         String refinedCommandName = this.getRefinedName(commandName);
@@ -86,7 +85,11 @@ public class TaskHandlerExecutorRepository extends AbstractExecutorRepository<Ta
         int maxConcurrency = this.getMaxConcurrency(taskHandler, proxyName);
         int minConcurrency = this.getMinConcurrency(taskHandler, proxyName);
         int executionTimeout = this.getExecutionTimeout(taskHandler, commandName);
-        if (taskHandler instanceof HystrixTaskHandler) {
+        if (taskHandler instanceof AsyncHystrixTaskHandler) {
+            //noinspection unchecked
+            executor = getAsyncTaskHandlerExecutor((AsyncHystrixTaskHandler) taskHandler,
+                    requestWrapper, refinedCommandName, maxConcurrency);
+        } else if (taskHandler instanceof HystrixTaskHandler) {
             if (((HystrixTaskHandler) taskHandler).getIsolationStrategy() == ExecutionIsolationStrategy.SEMAPHORE) {
                 executor = getTaskHandlerExecutorWithSemaphoreIsolation(requestWrapper, refinedCommandName,
                         taskHandler, maxConcurrency);
@@ -112,7 +115,7 @@ public class TaskHandlerExecutorRepository extends AbstractExecutorRepository<Ta
      * @throws UnsupportedOperationException if doesn't find a TaskHandler in the registry corresponding to the command name
      */
     public Executor<TaskRequestWrapper, TaskResult> getExecutor(String commandName, String proxyName, TaskRequestWrapper requestWrapper, Decoder decoder) {
-        Executor<TaskRequestWrapper, TaskResult> executor = null;
+        Executor<TaskRequestWrapper, TaskResult> executor;
         //Regex matching of threadPoolName and commandName
         //(Hystrix dashboard requires names to be alphanumeric)    	
         String refinedCommandName = this.getRefinedName(commandName);
@@ -121,7 +124,11 @@ public class TaskHandlerExecutorRepository extends AbstractExecutorRepository<Ta
         int maxConcurrency = this.getMaxConcurrency(taskHandler, proxyName);
         int minConcurrency = this.getMinConcurrency(taskHandler, proxyName);
         int executionTimeout = this.getExecutionTimeout(taskHandler, commandName);
-        if (taskHandler instanceof HystrixTaskHandler) {
+        if (taskHandler instanceof AsyncHystrixTaskHandler) {
+            //noinspection unchecked
+            executor = getAsyncTaskHandlerExecutorWithDecoder((AsyncHystrixTaskHandler) taskHandler,
+                    requestWrapper, refinedCommandName, maxConcurrency, decoder);
+        } else if (taskHandler instanceof HystrixTaskHandler) {
             if (((HystrixTaskHandler) taskHandler).getIsolationStrategy() == ExecutionIsolationStrategy.SEMAPHORE) {
                 executor = getTaskHandlerExecutorWithSemaphoreIsolationAndDecoder(requestWrapper, refinedCommandName,
                         taskHandler, maxConcurrency, decoder);
@@ -295,6 +302,14 @@ public class TaskHandlerExecutorRepository extends AbstractExecutorRepository<Ta
         return this.executeAsyncCommandV2(commandName, commandName, requestWrapper);
     }
 
+    private AsyncTaskHandlerExecutor getAsyncTaskHandlerExecutor(
+            AsyncHystrixTaskHandler taskHandler, TaskRequestWrapper requestWrapper,
+            String refinedCommandName, int maxConcurrentSize) {
+        //noinspection unchecked
+        return new AsyncTaskHandlerExecutor<>(taskHandler, this.getTaskContext(), refinedCommandName,
+                requestWrapper, maxConcurrentSize);
+    }
+
     /**
      * Helper methods to create and return the appropriate TaskHandlerExecutor instance
      */
@@ -303,8 +318,6 @@ public class TaskHandlerExecutorRepository extends AbstractExecutorRepository<Ta
         if (taskHandler instanceof RequestCacheableHystrixTaskHandler) {
             return new RequestCacheableTaskHandlerExecutor((RequestCacheableHystrixTaskHandler) taskHandler, this.getTaskContext(), refinedCommandName,
                     requestWrapper, maxConcurrentSize);
-        } else if (taskHandler instanceof AsyncHystrixTaskHandler) {
-            return new AsyncTaskHandlerExecutor((AsyncHystrixTaskHandler) taskHandler, this.getTaskContext(), refinedCommandName, requestWrapper, maxConcurrentSize);
         } else {
             return new TaskHandlerExecutor(taskHandler, this.getTaskContext(), refinedCommandName, requestWrapper, maxConcurrentSize);
         }
@@ -312,15 +325,12 @@ public class TaskHandlerExecutorRepository extends AbstractExecutorRepository<Ta
 
     private Executor<TaskRequestWrapper, TaskResult> getTaskHandlerExecutor(TaskRequestWrapper requestWrapper, String refinedCommandName,
                                                                             String refinedProxyName, int minConcurrencySize, int maxConcurrentSize,
-                                                                            int executorTimeOut, AbstractHandler taskHandler) {
+                                                                            int executorTimeOut, TaskHandler taskHandler) {
         if (taskHandler instanceof RequestCacheableHystrixTaskHandler) {
             return new RequestCacheableTaskHandlerExecutor((RequestCacheableHystrixTaskHandler) taskHandler, this.getTaskContext(),
                     refinedCommandName, executorTimeOut, refinedProxyName, minConcurrencySize, maxConcurrentSize, requestWrapper);
-        } else if (taskHandler instanceof AsyncHystrixTaskHandler) {
-            return new AsyncTaskHandlerExecutor((AsyncHystrixTaskHandler) taskHandler, this.getTaskContext(), refinedCommandName,
-                    requestWrapper, maxConcurrentSize);
         } else {
-            return new TaskHandlerExecutor((TaskHandler) taskHandler, this.getTaskContext(), refinedCommandName, executorTimeOut,
+            return new TaskHandlerExecutor(taskHandler, this.getTaskContext(), refinedCommandName, executorTimeOut,
                     refinedProxyName, minConcurrencySize, maxConcurrentSize, requestWrapper);
         }
     }
@@ -354,6 +364,15 @@ public class TaskHandlerExecutorRepository extends AbstractExecutorRepository<Ta
             return new TaskHandlerExecutor(taskHandler, this.getTaskContext(), refinedCommandName, executorTimeOut,
                     refinedProxyName, minConcurrencySize, maxConcurrentSize, requestWrapper, decoder);
         }
+    }
+
+    private AsyncTaskHandlerExecutor getAsyncTaskHandlerExecutorWithDecoder(
+            AsyncHystrixTaskHandler taskHandler, TaskRequestWrapper requestWrapper, String refinedCommandName, int maxConcurrentSize,
+            Decoder decoder) {
+        //noinspection unchecked
+        return new AsyncTaskHandlerExecutor<>(taskHandler,
+                this.getTaskContext(), refinedCommandName,
+                requestWrapper, maxConcurrentSize, decoder);
     }
 
     /**
