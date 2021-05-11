@@ -74,7 +74,7 @@ public class AsyncTaskHandlerExecutor<S, R> extends AbstractTaskHandlerExecutor<
 
     @Override
     protected AsyncTaskResult<R> run() {
-        return new AsyncTaskResult<>(run().getTaskResultFuture()
+        return new AsyncTaskResult<>(_run().getTaskResultFuture()
                 .thenApply(taskResult -> {
                     if (taskResult != null && !taskResult.isSuccess()) {
                         throw new RuntimeException("Command returned FALSE: " + taskResult.getMessage());
