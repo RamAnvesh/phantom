@@ -5,7 +5,7 @@ import com.flipkart.phantom.task.spi.*;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 
-public interface AsyncTaskHandler {
+public interface AsyncTaskHandler{
     /**
      * Execute this task in a non-blocking fashion if possible: ideally no threads should be blocked by the returned CompletableFuture.
      * Implementers who can execute the task in such a way (by using non-blocking I/O feature of the OS, for example)
@@ -20,7 +20,7 @@ public interface AsyncTaskHandler {
      * @return
      * @throws RuntimeException
      */
-    <T, S> AsyncTaskResult<T> executeAsync(TaskContext taskContext,
+    <T, S> CompletableFuture<TaskResult<T>> executeAsync(TaskContext taskContext,
                                            String command,
                                            Map<String, Object> params,
                                            S data);
@@ -37,7 +37,7 @@ public interface AsyncTaskHandler {
      * @return
      * @throws RuntimeException
      */
-    <T, S> AsyncTaskResult<T> executeAsync(TaskContext taskContext,
+    <T, S> CompletableFuture<TaskResult<T>> executeAsync(TaskContext taskContext,
                                            String command,
                                            TaskRequestWrapper<S> taskRequestWrapper,
                                            Decoder<T> decoder);

@@ -24,7 +24,7 @@ import java.util.List;
  * @author devashishshankar
  * @version 1.0, 19 March, 2013
  */
-public class TaskResult<T> implements AbstractTaskResult<T> {
+public class TaskResult<T> implements AbstractTaskResult {
 
     /** The default length in case the Object isn't a data array */
     private static final int DEFAULT_LENGTH = 0;

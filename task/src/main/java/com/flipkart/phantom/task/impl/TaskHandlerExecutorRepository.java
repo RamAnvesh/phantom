@@ -162,7 +162,7 @@ public class TaskHandlerExecutorRepository extends AbstractExecutorRepository<Ta
         if (command == null) {
             throw new UnsupportedOperationException("Invoked unsupported command : " + commandName);
         } else {
-            return command.queueAndCompose();
+            return command.queue();
         }
     }
 
@@ -311,15 +311,16 @@ public class TaskHandlerExecutorRepository extends AbstractExecutorRepository<Ta
     }
 
     private Executor<TaskRequestWrapper, TaskResult> getTaskHandlerExecutor(TaskRequestWrapper requestWrapper, String refinedCommandName,
-                                                                            String refinedProxyName, int minConcurrencySize, int maxConcurrentSize, int executorTimeOut, TaskHandler taskHandler) {
+                                                                            String refinedProxyName, int minConcurrencySize, int maxConcurrentSize,
+                                                                            int executorTimeOut, AbstractHandler taskHandler) {
         if (taskHandler instanceof RequestCacheableHystrixTaskHandler) {
             return new RequestCacheableTaskHandlerExecutor((RequestCacheableHystrixTaskHandler) taskHandler, this.getTaskContext(),
                     refinedCommandName, executorTimeOut, refinedProxyName, minConcurrencySize, maxConcurrentSize, requestWrapper);
         } else if (taskHandler instanceof AsyncHystrixTaskHandler) {
-            return new AsyncTaskHandlerExecutor((AsyncHystrixTaskHandler) taskHandler, this.getTaskContext(), refinedCommandName, executorTimeOut,
-                    refinedProxyName, minConcurrencySize, maxConcurrentSize, requestWrapper);
+            return new AsyncTaskHandlerExecutor((AsyncHystrixTaskHandler) taskHandler, this.getTaskContext(), refinedCommandName,
+                    requestWrapper, maxConcurrentSize);
         } else {
-            return new TaskHandlerExecutor(taskHandler, this.getTaskContext(), refinedCommandName, executorTimeOut,
+            return new TaskHandlerExecutor((TaskHandler) taskHandler, this.getTaskContext(), refinedCommandName, executorTimeOut,
                     refinedProxyName, minConcurrencySize, maxConcurrentSize, requestWrapper);
         }
     }
@@ -346,8 +347,9 @@ public class TaskHandlerExecutorRepository extends AbstractExecutorRepository<Ta
             return new RequestCacheableTaskHandlerExecutor((RequestCacheableHystrixTaskHandler) taskHandler, this.getTaskContext(),
                     refinedCommandName, executorTimeOut, refinedProxyName, minConcurrencySize, maxConcurrentSize, requestWrapper, decoder);
         } else if (taskHandler instanceof AsyncHystrixTaskHandler) {
-            return new AsyncTaskHandlerExecutor((AsyncHystrixTaskHandler) taskHandler, this.getTaskContext(), refinedCommandName, executorTimeOut,
-                    refinedProxyName, minConcurrencySize, maxConcurrentSize, requestWrapper, decoder);
+            return new AsyncTaskHandlerExecutor((AsyncHystrixTaskHandler) taskHandler,
+                    this.getTaskContext(), refinedCommandName,
+                    requestWrapper, maxConcurrentSize, decoder);
         } else {
             return new TaskHandlerExecutor(taskHandler, this.getTaskContext(), refinedCommandName, executorTimeOut,
                     refinedProxyName, minConcurrencySize, maxConcurrentSize, requestWrapper, decoder);

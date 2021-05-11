@@ -37,7 +37,7 @@ import java.util.Map;
  * @version 1.0, 19th March, 2013
  */
 @SuppressWarnings("rawtypes")
-public abstract class AbstractTaskHandlerExecutor<S, T extends AbstractTaskResult<R>, R> extends HystrixCommand<T> implements Executor<TaskRequestWrapper<S>, T> {
+public abstract class AbstractTaskHandlerExecutor<S, T extends AbstractTaskResult, R> extends HystrixCommand<T> implements Executor<TaskRequestWrapper<S>, T> {
 
     /**
      * TaskResult message constants

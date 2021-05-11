@@ -1,9 +1,12 @@
 package com.flipkart.phantom.task.impl;
 
-import com.flipkart.phantom.task.spi.*;
-import com.google.common.base.Optional;
+import com.flipkart.phantom.task.spi.Decoder;
+import com.flipkart.phantom.task.spi.TaskContext;
+import com.flipkart.phantom.task.spi.TaskRequestWrapper;
+import com.flipkart.phantom.task.spi.TaskResult;
 
 import java.util.Map;
+import java.util.Optional;
 import java.util.concurrent.Future;
 
 public class TaskHandlerExecutor<S, R> extends AbstractTaskHandlerExecutor<S, TaskResult<R>, R> {
@@ -38,17 +41,17 @@ public class TaskHandlerExecutor<S, R> extends AbstractTaskHandlerExecutor<S, Ta
 
     @Override
     protected TaskResult<R> getResult(TaskContext taskContext, String command, TaskRequestWrapper<S> requestWrapper, Decoder<R> decoder) {
-        return (TaskResult<R>) this.taskHandler.execute(taskContext, command, requestWrapper, decoder);
+        return this.taskHandler.execute(taskContext, command, requestWrapper, decoder);
     }
 
     @Override
     protected TaskResult<R> getResult(TaskContext taskContext, String command, Map<String, Object> params, S data) {
-        return (TaskResult<R>) this.taskHandler.execute(taskContext, command, params, data);
+        return this.taskHandler.execute(taskContext, command, params, data);
     }
 
     @Override
     protected TaskResult<R> run() throws Exception {
-        Optional<RuntimeException> transportException = Optional.absent();
+        Optional<RuntimeException> transportException = Optional.empty();
         TaskResult<R> result = null;
         try {
             result = _run();
@@ -64,7 +67,7 @@ public class TaskHandlerExecutor<S, R> extends AbstractTaskHandlerExecutor<S, Ta
                     }
                 }
             }
-            processResponseInterceptors(result, transportException.orNull());
+            processResponseInterceptors(result, transportException.orElse(null));
         }
         if (result != null && !result.isSuccess()) {
             throw new RuntimeException("Command returned FALSE: " + result.getMessage());

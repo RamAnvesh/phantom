@@ -1,5 +1,5 @@
 package com.flipkart.phantom.task.spi;
 
-public interface AbstractTaskResult<T> {
+public interface AbstractTaskResult {
     boolean isSuccess();
 }
