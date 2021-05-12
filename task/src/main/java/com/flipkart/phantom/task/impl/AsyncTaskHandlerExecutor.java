@@ -208,7 +208,8 @@ public class AsyncTaskHandlerExecutor<S, R> extends HystrixObservableCommand<Tas
 
     public CompletableFuture<TaskResult<R>> queue() {
         CompletableFuture<TaskResult<R>> completableFuture = new CompletableFuture<>();
-        toObservable().subscribe(completableFuture::complete, completableFuture::completeExceptionally);
+        Observable<TaskResult<R>> observable = observe();
+        observable.subscribe(completableFuture::complete, completableFuture::completeExceptionally);
         return completableFuture;
     }
 
