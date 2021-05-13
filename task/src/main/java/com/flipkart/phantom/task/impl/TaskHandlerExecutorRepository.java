@@ -182,7 +182,7 @@ public class TaskHandlerExecutorRepository extends AbstractExecutorRepository<Ta
      * @return thrift result
      * @throws UnsupportedOperationException if no handler found for command
      */
-    public Future<? extends TaskResult<?>> executeAsyncCommand(final String commandName, String proxyName, final TaskRequestWrapper requestWrapper) throws UnsupportedOperationException {
+    public Future<TaskResult<?>> executeAsyncCommand(final String commandName, String proxyName, final TaskRequestWrapper requestWrapper) throws UnsupportedOperationException {
         final long receiveTime = System.currentTimeMillis();
         final TaskHandlerExecutor command = (TaskHandlerExecutor) getExecutor(commandName, proxyName, requestWrapper);
         return executeAsyncCommand(receiveTime, command, commandName, requestWrapper);
@@ -294,7 +294,7 @@ public class TaskHandlerExecutorRepository extends AbstractExecutorRepository<Ta
      * @return thrift result
      * @throws UnsupportedOperationException if no handler found for command
      */
-    public Future<? extends TaskResult<?>> executeAsyncCommand(String commandName, TaskRequestWrapper requestWrapper) throws UnsupportedOperationException {
+    public Future<TaskResult<?>> executeAsyncCommand(String commandName, TaskRequestWrapper requestWrapper) throws UnsupportedOperationException {
         return this.executeAsyncCommand(commandName, commandName, requestWrapper);
     }
 
