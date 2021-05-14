@@ -9,18 +9,18 @@ import java.util.concurrent.CompletableFuture;
 public abstract class AsyncHystrixTaskHandler extends TaskHandler implements AsyncTaskHandler {
 
     /**
-
-    /**
      * This method will be executed if execute() fails.
+     *
      * @param command the command used
-     * @param params thrift parameters
-     * @param data extra data if any
+     * @param params  thrift parameters
+     * @param data    extra data if any
      * @return response
      */
     public abstract <T, S> CompletableFuture<TaskResult<T>> getFallBack(TaskContext taskContext, String command, Map<String, Object> params, S data);
 
     /**
      * Returns null. Sub-Classes should override it, if they need fallback functionality.
+     *
      * @param taskContext
      * @param command
      * @param taskRequestWrapper
@@ -36,6 +36,7 @@ public abstract class AsyncHystrixTaskHandler extends TaskHandler implements Asy
     /**
      * Call to optionally release any resources used to create the specified response. Useful when Hystrix command
      * timeouts result in the call being aborted. This callback is intended to be used for freeing up underlying connections/resources.
+     *
      * @param taskResult
      */
     public <T> void releaseResources(TaskResult<T> taskResult) {
@@ -49,6 +50,15 @@ public abstract class AsyncHystrixTaskHandler extends TaskHandler implements Asy
         return HystrixCommandProperties.ExecutionIsolationStrategy.SEMAPHORE;
     }
 
+    /* Prevent accidentally overriding sync methods*/
+    @Override
+    public final <T, S> TaskResult<T> execute(TaskContext taskContext, String command, Map<String, Object> params, S data) throws RuntimeException {
+        throw new UnsupportedOperationException("AsyncTaskHandlers should not implement execute. Please implement executeAsync instead");
+    }
 
-
+    /* Prevent accidentally overriding sync methods*/
+    @Override
+    public final <T, S> TaskResult<T> execute(TaskContext taskContext, String command, TaskRequestWrapper<S> taskRequestWrapper, Decoder<T> decoder) throws RuntimeException {
+        throw new UnsupportedOperationException("AsyncTaskHandlers should not implement execute. Please implement executeAsync instead");
+    }
 }
