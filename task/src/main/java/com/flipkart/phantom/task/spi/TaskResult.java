@@ -24,7 +24,7 @@ import java.util.List;
  * @author devashishshankar
  * @version 1.0, 19 March, 2013
  */
-public class TaskResult<T> {
+public class TaskResult<T> implements AbstractTaskResult {
 
     /** The default length in case the Object isn't a data array */
     private static final int DEFAULT_LENGTH = 0;
@@ -54,7 +54,7 @@ public class TaskResult<T> {
      * @param message Response Message
      * @param data Response Data
      */
-    public TaskResult(boolean success, String message,T data) {
+    public TaskResult(boolean success, String message, T data) {
         this.success = success;
         this.message = message;
         this.data = data;
@@ -76,7 +76,7 @@ public class TaskResult<T> {
      * @param data Response Data
      * @param metadata metadata of the task result. To be sent before the data
      */
-    public TaskResult(boolean success, String message,T data, byte[] metadata) {
+    public TaskResult(boolean success, String message, T data, byte[] metadata) {
         this.success = success;
         this.message = message;
         this.data = data;
@@ -104,7 +104,7 @@ public class TaskResult<T> {
      * @param dataArray Response Data Array
      * @param length Data ArrayLength
      */
-    public TaskResult(boolean success, String message, List<T> dataArray,int length) {
+    public TaskResult(boolean success, String message, List<T> dataArray, int length) {
         this.success = success;
         this.message = message;
         this.data = null;

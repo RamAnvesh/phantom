@@ -17,10 +17,9 @@
 package com.flipkart.phantom.task.spi;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.flipkart.phantom.task.spi.TaskRequestWrapper;
-import com.flipkart.phantom.task.spi.TaskResult;
 
 import java.util.Map;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Future;
 
 /**
@@ -29,8 +28,6 @@ import java.util.concurrent.Future;
  *
  * @author devashishshankar
  * @author regunath.balasubramanian
- *
- * @version 1.0, 19th March, 2013
  * @version 2.0, 11th July, 2013
  */
 @SuppressWarnings("rawtypes")
@@ -38,29 +35,32 @@ public interface TaskContext {
 
     /**
      * Gets the config from the ConfigTaskHandler.
+     *
      * @param group group name of the object to be fetched
-     * @param key the primary key
+     * @param key   the primary key
      * @return the config as string, empty string if not found/error
      */
     public String getConfig(String group, String key, int count);
 
     /**
      * Executes a task identified by the specified command name. This command executes synchronously
+     *
      * @param commandName the command to execute
-     * @param data the command processing data
-     * @param params data parameters
+     * @param data        the command processing data
+     * @param params      data parameters
      * @return a TaskResult instance with the execution outcome
      * @throws UnsupportedOperationException in case none of the registered TaskHandler instances support the specified command
      */
-	public <S> TaskResult executeCommand(String commandName, S data, Map<String,Object> params) throws UnsupportedOperationException;
+    public <S> TaskResult executeCommand(String commandName, S data, Map<String, Object> params) throws UnsupportedOperationException;
 
     /**
      * Executes a task identified by the specified command name. This command executes synchronously.
      * This execute Command is to be called by clients who wish to have control over the response decode process.
      * The TaskResult thus formed will contain the instance of data T as decoded by the Decoder.
-     * @param commandName the command to execute
+     *
+     * @param commandName        the command to execute
      * @param taskRequestWrapper params for processing the request
-     * @param decoder Decoder to be Implemented by clients to process the response
+     * @param decoder            Decoder to be Implemented by clients to process the response
      * @return a TaskResult instance with the execution outcome
      * @throws UnsupportedOperationException in case none of the registered TaskHandler instances support the specified command
      */
@@ -70,10 +70,11 @@ public interface TaskContext {
      * Executes a task identified by the specified command name. This command executes synchronously.
      * This execute Command is to be called by clients who wish to have control over the response decode process.
      * The TaskResult thus formed will contain the instance of data T as decoded by the Decoder.
+     *
      * @param commandName the command to execute
-     * @param data the command processing data
-     * @param params data parameters
-     * @param decoder Decoder to be Implemented by clients to process the response
+     * @param data        the command processing data
+     * @param params      data parameters
+     * @param decoder     Decoder to be Implemented by clients to process the response
      * @return a TaskResult instance with the execution outcome
      * @throws UnsupportedOperationException in case none of the registered TaskHandler instances support the specified command
      */
@@ -83,24 +84,37 @@ public interface TaskContext {
      * Executes a task asynchronously identified by the specified command name.
      * This execute Command is to be called by clients who wish to have control over the response decode process.
      * The TaskResult thus formed will contain the instance of data T as decoded by the Decoder.
+     *
      * @param commandName the command to execute
-     * @param data the command processing data
-     * @param params data parameters
-     * @param decoder Decoder to be Implemented by clients to process the response
+     * @param data        the command processing data
+     * @param params      data parameters
+     * @param decoder     Decoder to be Implemented by clients to process the response
      * @return a TaskResult instance with the execution outcome
      * @throws UnsupportedOperationException in case none of the registered TaskHandler instances support the specified command
      */
-    public <S> Future<TaskResult> executeAsyncCommand(String commandName, S data, Map<String, Object> params, Decoder decoder) throws UnsupportedOperationException;
+    default <S> Future<TaskResult<Object>> executeAsyncCommand(String commandName, S data, Map<String, Object> params, Decoder decoder) throws UnsupportedOperationException {
+        return executeAsyncCommandV2(commandName, data, params, decoder);
+    }
 
     /**
      * Executes a command asynchronously and returns a {@link Future} to get the {@link TaskResult} from
+     *
+     * @return
      * @see TaskContext#executeCommand(String, java.lang.Object, java.util.Map)
      */
-    public <S> Future<TaskResult> executeAsyncCommand(String commandName, S data, Map<String, Object> params) throws UnsupportedOperationException;
+    <S> Future<? extends TaskResult<?>> executeAsyncCommand(String commandName, S data, Map<String, Object> params) throws UnsupportedOperationException;
 
-    /** Gets the ObjectMapper instance for result serialization to JSON*/
+    public <S> CompletableFuture<TaskResult<Object>> executeAsyncCommandV2(String commandName, S data, Map<String, Object> params, Decoder decoder) throws UnsupportedOperationException;
+
+    public <S> CompletableFuture<TaskResult<Object>> executeAsyncCommandV2(String commandName, S data, Map<String, Object> params) throws UnsupportedOperationException;
+
+    /**
+     * Gets the ObjectMapper instance for result serialization to JSON
+     */
     public ObjectMapper getObjectMapper();
 
-    /** Gets Host Name of current server */
+    /**
+     * Gets Host Name of current server
+     */
     public String getHostName();
 }

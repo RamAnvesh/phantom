@@ -46,7 +46,7 @@ import com.netflix.hystrix.HystrixThreadPoolProperties;
  * @version 1.0, 19th March, 2013
  */
 @SuppressWarnings("rawtypes")
-public class TaskHandlerExecutor<S> extends HystrixCommand<TaskResult> implements Executor<TaskRequestWrapper<S>, TaskResult> {
+public class TaskHandlerExecutor<S, R> extends HystrixCommand<TaskResult<R>> implements Executor<TaskRequestWrapper<S>, TaskResult<R>> {
 
     /** TaskResult message constants */
     public static final String NO_RESULT = "The command returned no result";
@@ -87,10 +87,10 @@ public class TaskHandlerExecutor<S> extends HystrixCommand<TaskResult> implement
 
     /** Event which records various paramenters of this request execution & published later */
     protected ServiceProxyEvent.Builder eventBuilder;
-    
+
     /** List of request and response interceptors */
-    private List<RequestInterceptor<TaskRequestWrapper<S>>> requestInterceptors = new LinkedList<RequestInterceptor<TaskRequestWrapper<S>>>();
-    private List<ResponseInterceptor<TaskResult>> responseInterceptors = new LinkedList<ResponseInterceptor<TaskResult>>();
+    private List<RequestInterceptor<TaskRequestWrapper<S>>> requestInterceptors = new LinkedList<>();
+    private List<ResponseInterceptor<TaskResult<R>>> responseInterceptors = new LinkedList<>();
 
     /**
      * Basic constructor for {@link TaskHandler}. The Hystrix command name is commandName. The group name is the Handler Name
@@ -232,41 +232,41 @@ public class TaskHandlerExecutor<S> extends HystrixCommand<TaskResult> implement
      * @throws Exception
      */
     @SuppressWarnings("unchecked")
-	@Override
+    @Override
     protected  TaskResult run() throws Exception {
         this.eventBuilder.withRequestExecutionStartTime(System.currentTimeMillis());
         if (this.taskRequestWrapper.getRequestContext().isPresent() && this.taskRequestWrapper.getRequestContext().get().getCurrentServerSpan() != null) {
-        	Brave.getServerSpanThreadBinder().setCurrentSpan(this.taskRequestWrapper.getRequestContext().get().getCurrentServerSpan());
+            Brave.getServerSpanThreadBinder().setCurrentSpan(this.taskRequestWrapper.getRequestContext().get().getCurrentServerSpan());
         }
         for (RequestInterceptor<TaskRequestWrapper<S>> requestInterceptor : this.requestInterceptors) {
-        	requestInterceptor.process(this.taskRequestWrapper);
-        }        
+            requestInterceptor.process(this.taskRequestWrapper);
+        }
         Optional<RuntimeException> transportException = Optional.absent();
         TaskResult result = null;
         try {
-	        if(decoder == null) {
-	            result = this.taskHandler.execute(taskContext, command, params, data);
-	        } else {
-	            result = this.taskHandler.execute(taskContext, command, taskRequestWrapper,decoder);
-	        }
-	        if (result == null) {
-	        	result = new TaskResult<byte[]>(true, TaskHandlerExecutor.NO_RESULT);
-	        }
+            if(decoder == null) {
+                result = this.taskHandler.execute(taskContext, command, params, data);
+            } else {
+                result = this.taskHandler.execute(taskContext, command, taskRequestWrapper,decoder);
+            }
+            if (result == null) {
+                result = new TaskResult<byte[]>(true, TaskHandlerExecutor.NO_RESULT);
+            }
         } catch (RuntimeException e) {
-        	transportException = Optional.of(e);
-        	throw e; // rethrow this for it to handled by other layers in the call stack
+            transportException = Optional.of(e);
+            throw e; // rethrow this for it to handled by other layers in the call stack
         } finally {
-        	// signal to the handler to release resources if the command timed out
-        	if (this.isResponseTimedOut()) {
-        		if(result!= null ) {
-        			if (HystrixTaskHandler.class.isAssignableFrom(this.taskHandler.getClass())) {
-        				((HystrixTaskHandler)this.taskHandler).releaseResources(result);        			
-        			}
-        		}
-        	}     
-	        for (ResponseInterceptor<TaskResult> responseInterceptor : this.responseInterceptors) {
-	        	responseInterceptor.process(result, transportException);
-	        }
+            // signal to the handler to release resources if the command timed out
+            if (this.isResponseTimedOut()) {
+                if(result!= null ) {
+                    if (HystrixTaskHandler.class.isAssignableFrom(this.taskHandler.getClass())) {
+                        ((HystrixTaskHandler)this.taskHandler).releaseResources(result);
+                    }
+                }
+            }
+            for (ResponseInterceptor<TaskResult<R>> responseInterceptor : this.responseInterceptors) {
+                responseInterceptor.process(result, transportException);
+            }
         }
         if (!result.isSuccess()) {
             throw new RuntimeException("Command returned FALSE: " + result.getMessage());
@@ -278,12 +278,12 @@ public class TaskHandlerExecutor<S> extends HystrixCommand<TaskResult> implement
      * Interface method implementation. @see HystrixCommand#getFallback()
      */
     @SuppressWarnings("unchecked")
-	@Override
+    @Override
     protected TaskResult getFallback() {
-    	// check and populate execution error root cause, if any, for use in fallback
-    	if (this.isFailedExecution()) {
-    		this.params.put(Executor.EXECUTION_ERROR_CAUSE, this.getFailedExecutionException());
-    	}
+        // check and populate execution error root cause, if any, for use in fallback
+        if (this.isFailedExecution()) {
+            this.params.put(Executor.EXECUTION_ERROR_CAUSE, this.getFailedExecutionException());
+        }
         if(this.taskHandler instanceof HystrixTaskHandler) {
             HystrixTaskHandler hystrixTaskHandler = (HystrixTaskHandler) this.taskHandler;
             if(decoder == null) {
@@ -301,23 +301,23 @@ public class TaskHandlerExecutor<S> extends HystrixCommand<TaskResult> implement
      * @see com.flipkart.phantom.task.spi.Executor#addRequestInterceptor(com.flipkart.phantom.task.spi.interceptor.RequestInterceptor)
      */
     public void addRequestInterceptor(RequestInterceptor<TaskRequestWrapper<S>> requestInterceptor) {
-    	this.requestInterceptors.add(requestInterceptor);
+        this.requestInterceptors.add(requestInterceptor);
     }
 
     /**
      * Interface method implementation. Adds the ResponseInterceptor to the list of response interceptors that will be invoked
      * @see com.flipkart.phantom.task.spi.Executor#addResponseInterceptor(com.flipkart.phantom.task.spi.interceptor.ResponseInterceptor)
      */
-    public void addResponseInterceptor(ResponseInterceptor<TaskResult> responseInterceptor){
-    	this.responseInterceptors.add(responseInterceptor);
+    public void addResponseInterceptor(ResponseInterceptor<TaskResult<R>> responseInterceptor){
+        this.responseInterceptors.add(responseInterceptor);
     }
-    
+
     /**
      * Interface method implementation. Returns the name of the TaskHandler used by this Executor
      * @see com.flipkart.phantom.task.spi.Executor#getServiceName()
      */
     public Optional<String> getServiceName() {
-    	return Optional.of(this.taskHandler.getName());
+        return Optional.of(this.taskHandler.getName());
     }
 
     /**
@@ -325,9 +325,9 @@ public class TaskHandlerExecutor<S> extends HystrixCommand<TaskResult> implement
      * @see com.flipkart.phantom.task.spi.Executor#getRequestWrapper()
      */
     public TaskRequestWrapper<S> getRequestWrapper() {
-    	return this.taskRequestWrapper;
+        return this.taskRequestWrapper;
     }
-    
+
     /**
      * First It checks the call invocation type has been overridden for the command,
      * if not, it defaults to task handler call invocation type.
@@ -343,7 +343,7 @@ public class TaskHandlerExecutor<S> extends HystrixCommand<TaskResult> implement
         }
         return this.taskHandler.getCallInvocationType();
     }
-    
+
     /**
      * Getter method for the event builder
      */

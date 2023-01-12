@@ -101,7 +101,7 @@ public class CommandProcessingChannelHandler extends SimpleChannelUpstreamHandle
 	private ChannelGroup defaultChannelGroup;
 
 	/** The TaskRepository to lookup TaskHandlerExecutors from */
-	private ExecutorRepository<TaskRequestWrapper,TaskResult, TaskHandler> repository;
+	private ExecutorRepository<TaskRequestWrapper, TaskResult, TaskHandler> repository;
 
     /** The publisher used to broadcast events to Service Proxy Subscribers */
     private ServiceProxyEventProducer eventProducer;
@@ -255,10 +255,10 @@ public class CommandProcessingChannelHandler extends SimpleChannelUpstreamHandle
 	public void setDefaultChannelGroup(ChannelGroup defaultChannelGroup) {
 		this.defaultChannelGroup = defaultChannelGroup;
 	}
-	public ExecutorRepository<TaskRequestWrapper,TaskResult, TaskHandler> getRepository() {
+	public ExecutorRepository<TaskRequestWrapper, TaskResult, TaskHandler> getRepository() {
 		return this.repository;
 	}
-	public void setRepository(ExecutorRepository<TaskRequestWrapper,TaskResult, TaskHandler> repository) {
+	public void setRepository(ExecutorRepository<TaskRequestWrapper, TaskResult, TaskHandler> repository) {
 		this.repository = repository;
 	}
     public void setEventProducer(final ServiceProxyEventProducer eventProducer) {
